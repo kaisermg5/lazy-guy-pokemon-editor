@@ -1,0 +1,22 @@
+type_dict = {
+    '__name__': 'type',
+    'NORMAL': 0x0,
+    'FIGHTING': 0x1,
+    'FLYING': 0x2,
+    'POISON': 0x3,
+    'GROUND': 0x4,
+    'ROCK': 0x5,
+    'BUG': 0x6,
+    'GHOST': 0x7,
+    'STEEL': 0x8,
+    '???': 0x9,
+    'FIRE': 0xa,
+    'WATER': 0xb,
+    'GRASS': 0xc,
+    'ELECTRIC': 0xd,
+    'PSYCHIC': 0xe,
+    'ICE': 0xf,
+    'DRAGON': 0x10,
+    'DARK': 0x11,
+    'FAIRY': 0x17
+}
