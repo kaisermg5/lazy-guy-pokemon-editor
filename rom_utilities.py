@@ -19,6 +19,14 @@ class StructureError(BaseExpectedError):
     pass
 
 
+class TranslatingError(BaseExpectedError):
+    pass
+
+
+class ParsingError(BaseExpectedError):
+    pass
+
+
 ATTACK_END_BYTES = (b'\xff\xff',    #Regular
                     b'\x00\x00\xff')    #Jambo
 
@@ -42,10 +50,12 @@ class Rom:
         self.evolution_data_size = ini_file[rom_id].getint('MaxNumEvolutions') * 8
         self.jambo_attack_hack = ini_file[rom_id].getboolean('JamboAttackHack')
         self.free_space_byte = int(ini_file[rom_id]['FreeSpaceByte'], base=16).to_bytes(1, 'little')
+        self.is_fire_red = ini_file[rom_id].getboolean('BasedOnBPRE')
+
         self.offsets = { }
         for key in ini_file[rom_id]:
             if key not in ('tmhmbytesperentry', 'movetutorbytesperentry',
-                           'maxnumevolutions', 'jamboattackhack', 'freespacebyte'):
+                           'maxnumevolutions', 'jamboattackhack', 'freespacebyte', 'basedonbpre'):
                 self.offsets[key] = int(ini_file[rom_id][key], base=0)
 
         self.egg_moves_current_size = 0
@@ -99,6 +109,7 @@ class Rom:
         if len(data) <= original_data_size:
             self.write(original_data_address, data)
             self.delete_data(original_data_address + len(data), original_data_size - len(data))
+            return original_data_address
         else:
             if data[-1::] == self.free_space_byte:
                 data += b'\x00'
@@ -108,6 +119,7 @@ class Rom:
             if self.delete_data_on_repoint:
                 self.delete_data(original_data_address, original_data_size)
                 self.deleted_on_repoint.append(original_data_address)
+            return new_data_address
 
     def table_write(self, index, data, table):
         address = self.offsets[table] + index * len(data)
@@ -163,14 +175,28 @@ class Rom:
             data += b'\x00' * (11 - len(data))
         self.table_write(index, data, 'pokemonnames')
 
-    def write_pokedex_data(self, index, first_data, description, second_data):
-        if len(first_data) != 16 or len(second_data) != 12:
+    def write_pokedex_data(self, dex_index, first_data, description, second_data):
+        if not dex_index.isnumeric():
+            raise TranslatingError('Pokédex index "{}" is not a valid number.'.format(dex_index))
+        elif len(first_data) != 16 or len(second_data) != 8:
             raise StructureError('Incorrect pokédex data format.')
-        address = index * 32 + self.offsets['pokedexdata']
+
+        address = int(dex_index) * (32, 36)[self.is_fire_red] + self.offsets['pokedexdata']
         self.write(address, first_data)
         address += 16
-        self.repoint_data(address, description + b'\x00', alignment=1)
+        description_address = self.repoint_data(address, description + b'\x00', alignment=1)
         address += 4
+
+        # Fire red has a different pokédex data structure
+        if self.is_fire_red:
+            # Write a pointer to the end of the description, to omit second description
+            self.write_pointer(address, description_address + len(description) - 1)
+            address += 4
+            # Add padding
+            second_data += b'\xfe\xff\x00\x00'
+        else:
+            # Add padding
+            second_data = b'\x00\x00' + second_data + b'\x00\x00'
         self.write(address, second_data)
 
     def write_sprite_position(self, index, player_y, enemy_y, altitude):
@@ -183,6 +209,7 @@ class Rom:
     def write_dex_order(self, index, national, regional):
         if len(national) != 2 or len(regional) != 2:
             raise StructureError('Dex numbers must be 2 bytes long.')
+        index -= 1
         self.table_write(index, national, 'nationaldex')
         self.table_write(index, regional, 'regionaldex')
 

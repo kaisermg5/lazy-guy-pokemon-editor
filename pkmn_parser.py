@@ -1,11 +1,7 @@
 
-from rom_utilities import BaseExpectedError
+from rom_utilities import ParsingError
 
 import translate
-
-
-class ParsingError(BaseExpectedError):
-    pass
 
 
 def get_index(pkmn):
@@ -86,8 +82,12 @@ def get_move_tutor_compatibility(pkmn):
 
 
 def get_egg_moves(pkmn):
-    if 'EggMoves' in pkmn:
-        return translate.egg_groups(pkmn['EggMoves'])
+    if 'EggMoves' in pkmn and 'InternalName' in pkmn:
+        data = translate.egg_moves(pkmn['InternalName'], pkmn['EggMoves'])
+        if len(data) == 2:
+            return b''
+        else:
+            return data
     else:
         return b''
 
@@ -105,12 +105,14 @@ def get_sprites_position(pkmn):
 
 def estimate_comparison(height):
     relation = float(height) / 1.6
-    if relation < 0.4:
+    if relation < 0.2:
         trainer_scale, pokemon_scale = 256, 704
-    elif relation < 0.6:
+    elif relation < 0.4:
         trainer_scale, pokemon_scale = 256, 576
-    elif relation < 0.8:
+    elif relation < 0.6:
         trainer_scale, pokemon_scale = 256, 384
+    elif relation < 0.8:
+        trainer_scale, pokemon_scale = 256, 320
     elif relation < 1.2:
         trainer_scale = pokemon_scale = 256
     elif relation < 2:
@@ -139,11 +141,10 @@ def get_pokedex_data(pkmn):
 
         description = translate.text(pkmn['Pokedex']) + b'\x00'
 
-        padding = trainer_offset = pokemon_offset = b'\x00\x00'
+        trainer_offset = pokemon_offset = b'\x00\x00'
         trainer_scale, pokemon_scale = estimate_comparison(pkmn['Height'])
 
-        second_data = padding + pokemon_scale + pokemon_offset + trainer_scale + \
-                      trainer_offset + padding
+        second_data = pokemon_scale + pokemon_offset + trainer_scale + trainer_offset
 
         return first_data, description, second_data
 

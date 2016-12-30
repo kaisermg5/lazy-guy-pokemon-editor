@@ -2,7 +2,7 @@
 import sys
 import os
 
-from rom_utilities import BaseExpectedError, StructureError
+from rom_utilities import TranslatingError, StructureError
 
 from data.abilities import ability_dict
 from data.items import item_dict
@@ -68,10 +68,6 @@ growth_dict = {
     'Fast': 0x4,
     'Slow': 0x5
 }
-
-
-class TranslatingError(BaseExpectedError):
-    pass
 
 
 def pkmn_index(name):

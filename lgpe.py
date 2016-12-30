@@ -13,10 +13,8 @@ PBS_POKEMON = os.path.join(sys.path[0], 'pbs/pokemon.txt')
 
 
 def get_function_matrix(args, rom_object):
-    if args.pokedex_data:
-        print('\nPokédex data editing is not done yet.\nSorry :(\n')
-    if args.egg_moves:
-        print('\nEgg moves editing is not done yet.\nSorry :(\n')
+    if args.cries:
+        print('\nPokémon cry editing is not done yet.\nSorry :(\n')
 
     full_matrix = (
         (args.pokemon_data, pkmn_parser.get_pokemon_data, rom_object.write_pokemon_data),
@@ -26,10 +24,8 @@ def get_function_matrix(args, rom_object):
          pkmn_parser.get_tmhm_compatibility, rom_object.write_tmhm_compatibility),
         (check_tmhm_mv_tutor_moves(args.move_tutor, 'move tutor'),
          pkmn_parser.get_move_tutor_compatibility, rom_object.write_move_tutor_compatibility),
-        # TODO: Egg moves
-        #(args.egg_moves, pkmn_parser.get_egg_moves, rom_object.write_egg_moves),
-        # TODO: Pokédex data editing (it is not as simple as I thought...)
-        #(args.pokedex_data, pkmn_parser.get_pokedex_data, rom_object.write_pokedex_data),
+        (args.egg_moves, pkmn_parser.get_egg_moves, rom_object.write_egg_moves),
+        (args.pokedex_data, pkmn_parser.get_pokedex_data, rom_object.write_pokedex_data),
         (args.names, pkmn_parser.get_name, rom_object.write_pokemon_name),
         (args.dex_order, pkmn_parser.get_dex_order, rom_object.write_dex_order),
         (args.sprite_position, pkmn_parser.get_sprites_position, rom_object.write_sprite_position),
@@ -88,7 +84,10 @@ def main(args):
                     data = parse_function(pkmns[pk_key])
 
                 if isinstance(data, tuple):
-                    write_function(index, *data)
+                    if write_function == rom.write_pokedex_data:
+                        write_function(pk_key, *data)
+                    else:
+                        write_function(index, *data)
                 elif write_function == rom.write_egg_moves:
                     write_function(data)
                 else:
@@ -108,9 +107,9 @@ parser = argparse.ArgumentParser(description='Lazy Guy\'s Pokémon Editor (LGPE)
                                              'formatting the data to match third generation pokémon games. '
                                              'This is a command line tool, but it needs you to provide some '
                                              'offsets of your rom in the configuration file '
-                                             '"./data/roms.ini".\n This tool won\'t check at all the data '
+                                             '"./data/roms.ini".\n\n This tool won\'t check at all the data '
                                              'it is overwriting (except for pokémon descriptions and pokémon '
-                                             'moves),so make sure to backup your rom before using it, since '
+                                             'moves), so make sure to backup your rom before using it, since '
                                              'a simple mistake in your configuration would corrupt you rom.')
 
 parser.add_argument('-i', '--rom-id', metavar='ID',
@@ -133,15 +132,17 @@ parser.add_argument('-t', '--tm-hm', action='store_true',
 parser.add_argument('-u', '--move-tutor', action='store_true',
                     help='edit move tutor pokémon compatibility')
 parser.add_argument('-d', '--pokedex-data', action='store_true',
-                    help='edit pokémon pokédex data *TODO*')
+                    help='edit pokémon pokédex data')
 parser.add_argument('-n', '--names', action='store_true',
                     help='edit pokémon names')
 parser.add_argument('-o', '--dex-order', action='store_true',
                     help='edit pokémon pokédex order')
 parser.add_argument('-g', '--egg-moves', action='store_true',
-                    help='edit pokémon egg moves *TODO*')
+                    help='edit pokémon egg moves')
 parser.add_argument('-s', '--sprite-position', action='store_true',
                     help='edit in-battle pokémon sprites position')
+parser.add_argument('-c', '--cries', action='store_true',
+                    help='edit pokémon cries *COMING SOON*')
 
 
 parser.add_argument('filename', help='path to your rom file')
@@ -157,7 +158,6 @@ if __name__ == '__main__':
         # Testing...
         # import shutil
         # shutil.copyfile('gen6.gba', 'test.gba')
-        # parsed_args = parser.parse_args('-i test -pemtudnogs test.gba'.split())
+        # parsed_args = parser.parse_args('-i test -pemtudnogsc test.gba'.split())
         # print(parsed_args)
         # main(parsed_args)
-
